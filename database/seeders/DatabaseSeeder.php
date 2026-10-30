@@ -15,11 +15,11 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $admin = User::firstOrNew(['email' => env('ADMIN_EMAIL', 'admin@boltmart.test')]);
+        $admin->fill(['name' => 'Store Admin', 'phone' => '9876543210', 'password' => env('ADMIN_PASSWORD', 'ChangeMe@123')]);
+        $admin->is_admin = true;
+        $admin->save();
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        $this->call(CatalogSeeder::class);
     }
 }

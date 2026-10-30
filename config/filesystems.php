@@ -30,6 +30,17 @@ return [
 
     'disks' => [
 
+        // Product photos live directly under public/ so no storage:link symlink is
+        // needed (many shared hosts do not allow symlinks).
+        'uploads' => [
+            'driver' => 'local',
+            'root' => public_path('uploads'),
+            'url' => env('APP_URL').'/uploads',
+            'visibility' => 'public',
+            'throw' => false,
+            'report' => false,
+        ],
+
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
