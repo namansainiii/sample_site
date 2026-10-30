@@ -1,58 +1,59 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# BoltMart Hardware — online fastener & hardware store
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Laravel 13 e-commerce site for bolts, nuts, screws, washers, anchors and tools.
+Plain Blade + CSS (no Node build needed), works on cheap shared hosting.
 
-## About Laravel
+## Features
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+**Storefront**
+- Catalogue by category, search (name / size / SKU / DIN standard), material & stock filters, sorting
+- Products with multiple **sizes × pack quantities**, per-piece price, MRP strike-through, live stock
+- **Automatic bulk pricing tiers** (e.g. 5% off at 10 packs, 10% at 50) shown live on the product page and in cart
+- **Quick order by SKU**: paste `SKU, qty` lines (from Excel/WhatsApp) to fill the cart in one go
+- **Bulk / project quote request** form (BOQ paste) for large B2B orders
+- Checkout with **Cash on Delivery** and **Razorpay** (UPI / cards / netbanking), GSTIN capture for business buyers
+- Order tracking timeline + **GST tax invoice** (CGST/SGST or IGST by state, HSN codes) printable as PDF
+- WhatsApp enquiry buttons, SEO product schema, mobile-first responsive design
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+**Admin panel** (`/admin`)
+- Sales dashboard (today / month, 14-day chart, low-stock alerts, open orders, new quotes)
+- Products: details, specs, photo upload, sizes/packs/stock/price/MRP/bulk tiers in one screen
+- Categories, orders (status, courier tracking no., mark COD paid, cancel → auto restock), quote replies via WhatsApp / email
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Local setup
 
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+Requires PHP 8.3+ and Composer.
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate --seed
+php artisan serve
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Admin login comes from `ADMIN_EMAIL` / `ADMIN_PASSWORD` in `.env` (seeded by `php artisan db:seed`).
+**Change the password before going live.**
 
-## Contributing
+Run tests: `php artisan test`
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Configuration (`.env`)
 
-## Code of Conduct
+| Key | Purpose |
+| --- | --- |
+| `STORE_NAME`, `STORE_PHONE`, `STORE_WHATSAPP`, `STORE_EMAIL`, `STORE_ADDRESS` | Branding shown across the site and invoices |
+| `STORE_STATE`, `STORE_GSTIN` | Seller GST details (state decides CGST+SGST vs IGST) |
+| `STORE_SHIPPING_FEE`, `STORE_FREE_SHIPPING_ABOVE` | Flat shipping and free-shipping threshold (pre-GST) |
+| `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | Leave empty for COD-only. Use `rzp_test_…` keys while testing |
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Deploying to shared hosting (Hostinger / cPanel)
 
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+1. Create a MySQL database and user in the hosting panel.
+2. Upload the project (Git or zip) **outside** `public_html`, e.g. `~/boltmart`.
+3. Point the domain's document root to `~/boltmart/public` (or symlink `public_html` → `boltmart/public`).
+4. Over SSH: `composer install --no-dev --optimize-autoloader`
+5. Create `.env` with `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL=https://yourdomain.in`,
+   `DB_CONNECTION=mysql` + DB credentials, store details and Razorpay keys.
+6. `php artisan key:generate && php artisan migrate --force --seed && php artisan config:cache && php artisan route:cache && php artisan view:cache`
+7. Make `storage/`, `bootstrap/cache/` and `public/uploads/` writable.
+8. Enable free SSL (Let's Encrypt) in the panel.

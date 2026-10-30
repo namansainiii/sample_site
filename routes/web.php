@@ -1,45 +1,53 @@
 <?php
 
-use Illuminate\Http\Request;
+use App\Http\Controllers\AccountController;
+use App\Http\Controllers\Admin;
+use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\CartController;
+use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\QuoteController;
+use App\Http\Controllers\ShopController;
 use Illuminate\Support\Facades\Route;
 
-// Starting gateway: only login or registration first
-Route::get('/', function () {
-    return redirect()->route('login');
-})->name('home');
+// Storefront: open to everyone so search engines and new buyers can browse.
+Route::get('/', [ShopController::class, 'home'])->name('home');
+Route::get('/shop', [ShopController::class, 'catalog'])->name('shop');
+Route::get('/shop/{category}', [ShopController::class, 'catalog'])->name('shop.category');
+Route::get('/product/{product}', [ShopController::class, 'product'])->name('product.show');
 
-Route::get('/login', function () {
-    return view('pages.login');
-})->name('login');
+Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
+Route::post('/cart', [CartController::class, 'add'])->name('cart.add');
+Route::post('/cart/quick-order', [CartController::class, 'quickOrder'])->name('cart.quick-order');
+Route::patch('/cart/{variant}', [CartController::class, 'update'])->name('cart.update');
+Route::delete('/cart/{variant}', [CartController::class, 'remove'])->name('cart.remove');
 
-Route::get('/register', function () {
-    return view('pages.register');
-})->name('register');
+Route::get('/bulk-quote', [QuoteController::class, 'create'])->name('quotes.create');
+Route::post('/bulk-quote', [QuoteController::class, 'store'])->middleware('throttle:5,1')->name('quotes.store');
 
-// Protected Store Routes: strictly locked until login or registration
-Route::group(['middleware' => function (Request $request, Closure $next) {
-    if (! $request->cookie('demo_logged_in') && ! $request->session()->has('demo_user')) {
-        return redirect()->route('login');
-    }
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:6,1');
+    Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
+    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:6,1');
+});
 
-    return $next($request);
-}], function () {
-    // Store Catalog
-    Route::get('/catalog', function () {
-        return view('pages.home');
-    })->name('catalog');
+Route::middleware('auth')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-    // Client Cart & Checkout
-    Route::get('/cart', function () {
-        return view('pages.cart');
-    })->name('cart');
+    Route::get('/checkout', [CheckoutController::class, 'show'])->name('checkout');
+    Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
+    Route::get('/checkout/{order}/pay', [CheckoutController::class, 'pay'])->name('checkout.pay');
+    Route::post('/checkout/{order}/verify', [CheckoutController::class, 'verifyPayment'])->name('checkout.verify');
 
-    Route::get('/checkout', function () {
-        return view('pages.checkout');
-    })->name('checkout');
+    Route::get('/account/orders', [AccountController::class, 'orders'])->name('account.orders');
+    Route::get('/account/orders/{order}', [AccountController::class, 'showOrder'])->name('account.orders.show');
+    Route::get('/account/orders/{order}/invoice', [AccountController::class, 'invoice'])->name('account.orders.invoice');
+});
 
-    // Admin Orders Management
-    Route::get('/admin/orders', function () {
-        return view('pages.admin-orders');
-    })->name('admin.orders');
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/', Admin\DashboardController::class)->name('dashboard');
+    Route::resource('products', Admin\ProductController::class)->except('show');
+    Route::resource('categories', Admin\CategoryController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::resource('orders', Admin\OrderController::class)->only(['index', 'show', 'update']);
+    Route::resource('quotes', Admin\QuoteRequestController::class)->only(['index', 'show', 'update']);
 });
